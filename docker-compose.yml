@@ -1,0 +1,68 @@
+services:
+  traefik:
+    image: traefik:3.0
+    container_name: traefik
+    ports:
+      - 80:80 # HTTP port
+      - 443:443 # HTTPS port
+    restart: always
+    labels:
+      # Traefik configuration
+      traefik.enable: true
+      traefik.docker.network: traefik-public
+      
+      # Traefik Dashboard configuration
+      traefik.http.routers.traefik-dashboard-http.rule: Host(`${TRAEFIK_DOMAIN}`)
+      traefik.http.routers.traefik-dashboard-http.entrypoints: http
+      traefik.http.routers.traefik-dashboard-http.middlewares: https-redirect
+      
+      traefik.http.routers.traefik-dashboard-https.rule: Host(`${TRAEFIK_DOMAIN}`)
+      traefik.http.routers.traefik-dashboard-https.entrypoints: https
+      traefik.http.routers.traefik-dashboard-https.tls: true
+      traefik.http.routers.traefik-dashboard-https.tls.certresolver: le
+      traefik.http.routers.traefik-dashboard-https.service: api@internal
+      traefik.http.routers.traefik-dashboard-https.middlewares: traefik-auth
+      
+      # Traefik Basic Auth Middleware
+      traefik.http.middlewares.traefik-auth.basicauth.users: ${TRAEFIK_USERNAME}:${TRAEFIK_HASHED_PASSWORD}
+      
+      # HTTPS redirect middleware
+      traefik.http.middlewares.https-redirect.redirectscheme.scheme: https
+      traefik.http.middlewares.https-redirect.redirectscheme.permanent: true
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro # Docker socket for reading service labels
+      - traefik-public-certificates:/certificates # Certificate storage
+    command:
+      # Docker provider configuration
+      - --providers.docker
+      - --providers.docker.exposedbydefault=false
+
+      # Entrypoints configuration
+      - --entrypoints.http.address=:80
+      - --entrypoints.https.address=:443
+
+      # Let's Encrypt configuration
+      - --certificatesresolvers.le.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.le.acme.storage=/certificates/acme.json
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      # Use production environment (default, but explicit for clarity)
+      - --certificatesresolvers.le.acme.caserver=https://acme-v02.api.letsencrypt.org/directory
+
+      # API and Dashboard configuration
+      - --api.dashboard=true
+      - --api.insecure=false
+
+      # Logging configuration
+      - --accesslog
+      - --log
+    networks:
+      - traefik-public # Public network for Traefik and other services
+    env_file:
+      - .env
+
+volumes:
+  traefik-public-certificates: # Persistent volume for certificates
+
+networks:
+  traefik-public:
+    external: true
