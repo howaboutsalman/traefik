@@ -36,6 +36,7 @@ services:
       # Docker provider configuration
       - --providers.docker
       - --providers.docker.exposedbydefault=false
+      - --providers.docker.network=traefik-public
 
       # Entrypoints configuration
       - --entrypoints.http.address=:80
@@ -55,6 +56,7 @@ services:
       # Logging configuration
       - --accesslog
       - --log
+      - --log.level=DEBUG
     networks:
       - traefik-public # Public network for Traefik and other services
     env_file:
