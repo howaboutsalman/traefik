@@ -62,8 +62,62 @@ services:
     env_file:
       - .env
 
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres
+    restart: always
+    ports:
+      - "5432:5432"  # Expose PostgreSQL port for external connections
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - traefik-public
+    env_file:
+      - .env
+
+  # pgAdmin - Web-based PostgreSQL management tool
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD}
+      PGADMIN_CONFIG_SERVER_MODE: 'True'
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    networks:
+      - traefik-public
+    labels:
+      traefik.enable: true
+      traefik.docker.network: traefik-public
+      
+      # HTTP router - redirect to HTTPS
+      traefik.http.routers.pgadmin-http.rule: Host(`${PGADMIN_DOMAIN}`)
+      traefik.http.routers.pgadmin-http.entrypoints: http
+      traefik.http.routers.pgadmin-http.middlewares: https-redirect
+      
+      # HTTPS router with Let's Encrypt SSL
+      traefik.http.routers.pgadmin-https.rule: Host(`${PGADMIN_DOMAIN}`)
+      traefik.http.routers.pgadmin-https.entrypoints: https
+      traefik.http.routers.pgadmin-https.tls: true
+      traefik.http.routers.pgadmin-https.tls.certresolver: le
+      traefik.http.routers.pgadmin-https.service: pgadmin
+      
+      # Service configuration
+      traefik.http.services.pgadmin.loadbalancer.server.port: 80
+    env_file:
+      - .env
+
 volumes:
   traefik-public-certificates: # Persistent volume for certificates
+  postgres-data: # PostgreSQL data persistence
+  pgadmin-data: # pgAdmin data persistence
 
 networks:
   traefik-public:
