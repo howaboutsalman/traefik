@@ -1,0 +1,8 @@
+http:
+  middlewares:
+    cloudflare:
+      plugin:
+        traefik-plugin-cloudflare:
+          overwriteRequestHeader: "true"
+          refreshInterval: 24h
+          trustedCIDRs: ""

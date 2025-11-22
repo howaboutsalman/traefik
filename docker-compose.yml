@@ -32,15 +32,24 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro # Docker socket for reading service labels
       - traefik-public-certificates:/certificates # Certificate storage
+      - ./dynamic:/etc/traefik/dynamic:ro # Dynamic configuration for plugins and middlewares
     command:
       # Docker provider configuration
       - --providers.docker
       - --providers.docker.exposedbydefault=false
       - --providers.docker.network=traefik-public
+      
+      # File provider for dynamic configuration
+      - --providers.file.directory=/etc/traefik/dynamic
+      - --providers.file.watch=true
 
       # Entrypoints configuration
       - --entrypoints.http.address=:80
       - --entrypoints.https.address=:443
+      
+      # Cloudflare plugin configuration
+      - --experimental.plugins.traefik-plugin-cloudflare.modulename=github.com/agence-gaya/traefik-plugin-cloudflare
+      - --experimental.plugins.traefik-plugin-cloudflare.version=v1.2.0
 
       # Let's Encrypt configuration
       - --certificatesresolvers.le.acme.email=${ACME_EMAIL}

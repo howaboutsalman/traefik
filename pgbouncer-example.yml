@@ -1,0 +1,25 @@
+# Add this to your docker-compose.yml if you need connection pooling
+
+  pgbouncer:
+    image: pgbouncer/pgbouncer:latest
+    container_name: pgbouncer
+    restart: always
+    ports:
+      - "6432:6432"  # PgBouncer port
+    environment:
+      DATABASES_HOST: postgres
+      DATABASES_PORT: 5432
+      DATABASES_USER: ${DB_USER}
+      DATABASES_PASSWORD: ${DB_PASSWORD}
+      DATABASES_DBNAME: ${DB_NAME}
+      PGBOUNCER_POOL_MODE: transaction
+      PGBOUNCER_MAX_CLIENT_CONN: 1000
+      PGBOUNCER_DEFAULT_POOL_SIZE: 20
+    networks:
+      - traefik-public
+    depends_on:
+      - postgres
+    env_file:
+      - .env
+
+# Then connect to port 6432 instead of 5432
